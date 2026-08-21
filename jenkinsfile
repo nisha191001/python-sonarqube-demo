@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    stages {
+        stage('Clone') {
+            steps {
+                git branch: 'main', url: 'https://github.com/nisha191001/python-sonarqube-demo.git'
+            }
+        }
+        stage('Install & Test') {
+            steps {
+                sh 'pip install -r requirements.txt'
+                sh 'python -m pytest test_app.py'
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t python-sonarqube-demo .'
+            }
+        }
+    }
+}
